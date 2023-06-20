@@ -20,4 +20,12 @@ app.MapGet("/todoitems/{id}", async (int id, TodoDb db) =>
       ? Results.Ok(todo)
       : Results.NotFound());
 
+app.MapPost("todoitems", async (Todo todo, TodoDb db) =>
+{
+  db.Todos.Add(todo);
+  await db.SaveChangesAsync();
+
+  return Results.Created($"/todoitems/{todo.Id}", todo);
+});
+
 app.Run();
