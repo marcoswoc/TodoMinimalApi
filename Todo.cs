@@ -1,4 +1,4 @@
-namespace TodoMinimalApi;
+namespace TodoApi;
 
 public class Todo 
 {
