@@ -20,38 +20,46 @@ app.Run();
 
 static async Task<IResult> GetAllAsync(TodoDb db)
 {
-  return TypedResults.Ok(await db.Todos.ToArrayAsync());
+  return TypedResults.Ok(await db.Todos.Select(x => new TodoItemDTO(x)).ToArrayAsync());
 }
 
 static async Task<IResult> GetCompleteAsync(TodoDb db)
 {
-  return TypedResults.Ok(await db.Todos.Where(x => x.IsComplete).ToListAsync());
+  return TypedResults.Ok(await db.Todos.Where(x => x.IsComplete).Select(x => new TodoItemDTO(x)).ToListAsync());
 }
 
 static async Task<IResult> GetTodoAsync(int id, TodoDb db)
 {
     return await db.Todos.FindAsync(id)
         is Todo todo
-            ? TypedResults.Ok(todo)
+            ? TypedResults.Ok(new TodoItemDTO(todo))
             : TypedResults.NotFound();
 }
 
-static async Task<IResult> CreateTodoAsync(Todo todo, TodoDb db)
+static async Task<IResult> CreateTodoAsync(TodoItemDTO todoItemDTO, TodoDb db)
 {
-    db.Todos.Add(todo);
+    var todoItem = new Todo
+    {
+        IsComplete = todoItemDTO.IsComplete,
+        Name = todoItemDTO.Name
+    };
+
+    db.Todos.Add(todoItem);
     await db.SaveChangesAsync();
 
-    return TypedResults.Created($"/todoitems/{todo.Id}", todo);
+    todoItemDTO = new TodoItemDTO(todoItem);
+
+    return TypedResults.Created($"/todoitems/{todoItem.Id}", todoItemDTO);
 }
 
-static async Task<IResult> UpdateTodoAsync(int id, Todo inputTodo, TodoDb db)
+static async Task<IResult> UpdateTodoAsync(int id, TodoItemDTO inputTodoDTO, TodoDb db)
 {
     var todo = await db.Todos.FindAsync(id);
 
     if (todo is null) return TypedResults.NotFound();
 
-    todo.Name = inputTodo.Name;
-    todo.IsComplete = inputTodo.IsComplete;
+    todo.Name = inputTodoDTO.Name;
+    todo.IsComplete = inputTodoDTO.IsComplete;
 
     await db.SaveChangesAsync();
 
@@ -64,7 +72,10 @@ static async Task<IResult> DeleteTodoAsync(int id, TodoDb db)
     {
         db.Todos.Remove(todo);
         await db.SaveChangesAsync();
-        return TypedResults.Ok(todo);
+
+        TodoItemDTO todoItemDTO = new(todo);
+
+        return TypedResults.Ok(todoItemDTO);
     }
 
     return TypedResults.NotFound();
